@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-wrapper {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app {
+  position: absolute;
+  width: 420px;
+  height: 820px;
+  transform-origin: top left;
+  will-change: transform;
+}
+
+/* Portrait/Landscape visibility for EndScreen components */
+@media (orientation: portrait) {
+  .portrait-only {
+    display: flex !important;
+  }
+  .landscape-only {
+    display: none !important;
+  }
+}
+
+@media (orientation: landscape) {
+  .portrait-only {
+    display: none !important;
+  }
+  .landscape-only {
+    display: flex !important;
+  }
+}
