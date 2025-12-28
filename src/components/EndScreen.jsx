@@ -177,10 +177,24 @@ const EndScreen = ({ showEndScreen }) => {
                 w-[80vw] md:w-[50vw]
                 landscape:w-auto 
                 landscape:h-[35vh]
-                top-[43vh] left-1/2 -translate-x-1/2
+
+                /* --- RESPONSIVE VERTICAL ANCHORING --- */
+                /* 1. Mobile Default: Start slightly higher (45% from top) to avoid crowding the button */
+                top-[48%] 
+                
+                /* 2. Tablet/Desktop (md): Move to exact center (50%) */
+                md:top-[45%]
+                
+                /* 3. Landscape: Force exact center (50%) */
+                landscape:top-1/2
+
+                /* Horizontal Center (Always consistent) */
+                left-1/2 -translate-x-1/2
+                
                 ${
                 showCenter 
-                  ? "opacity-100 scale-100 -translate-y-[60%]" 
+                  /* Fine-tune the offset here if needed */
+                  ? "opacity-100 scale-100 -translate-y-[80%]" 
                   : "opacity-0 scale-50 -translate-y-[40%]"    
               }`}
             />
