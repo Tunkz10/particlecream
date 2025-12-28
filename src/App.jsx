@@ -3,59 +3,48 @@ import useScaleUI from "./hooks/useScaleUI";
 import { useSound } from "./hooks/useSound";
 import EndScreen from "./components/EndScreen";
 
-// --- REMOVED: import BackgroundLayout from "./components/BackgroundLayout"; ---
-
-// Image Imports (Background & Assets)
 import backgroundImg from "./assets/img/background.jpg";
-import molecule01 from "./assets/img/Molecule_01.png";
-import molecule02 from "./assets/img/Molecule_02.png";
-
+import bottom1Img from "./assets/img/bottom_design.png";
+import top1img from "./assets/img/top_design.png";
 import wheelImg from "./assets/img/WHEEL.png";
 import insideImg from "./assets/img/inside.png";
 import stopButton from "./assets/img/STOP_BUTTON.png";
 import logoImg from "./assets/img/Logo.png";
 import holidaySaleImg from "./assets/img/HOLIDAY_SALE.png";
 
-// Sound Imports
 import bgMusic from "./assets/sounds/Christmas Excitement_Full Mix (mp3cut.net).mp3";
 import stopSound from "./assets/sounds/Slot Machine Logo (mp3).mp3";
 
 function App() {
+  // Your hook works perfectly here. It scales the 420x820 game play area.
   const { appRef, wrapperRef } = useScaleUI(420, 820);
+  
   const [isStopping, setIsStopping] = useState(false);
   const [showEndScreen, setShowEndScreen] = useState(false);
-  const [showText2, setShowText2] = useState(false); // Kept state, though logic for text2 is now inside EndScreen
+  const [showText2, setShowText2] = useState(false);
   
-  // Ref to track if we have already triggered the start music logic
   const musicHasStartedRef = useRef(false);
   const wheelRef = useRef(null);
-  const fadeIntervalRef = useRef(null); 
+  const fadeIntervalRef = useRef(null);
 
-  // --- SOUND CONFIGURATION ---
-  const NORMAL_VOLUME = 0.15; 
-  const backgroundMusic = useSound(bgMusic, NORMAL_VOLUME, true); 
-  const stopButtonSound = useSound(stopSound, 0.8); 
+  const NORMAL_VOLUME = 0.15;
+  const backgroundMusic = useSound(bgMusic, NORMAL_VOLUME, true);
+  const stopButtonSound = useSound(stopSound, 0.8);
 
-  // --- UNIVERSAL FADE FUNCTION ---
+  // --- AUDIO LOGIC (Unchanged) ---
   const fadeTo = (audioSound, targetVol, duration = 1000) => {
     if (!audioSound) return;
     const audio = audioSound.getAudio();
     if (!audio) return;
     
     if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
-
     const startVol = audio.volume;
     const diff = targetVol - startVol;
     
     if (audio.paused && targetVol > 0) {
         audio.volume = startVol; 
         const playPromise = audio.play();
-        if (playPromise !== undefined) {
-            playPromise.catch(error => {
-                console.log("Autoplay prevented:", error);
-                return; 
-            });
-        }
+        if (playPromise !== undefined) playPromise.catch(() => {});
     }
 
     const steps = 20; 
@@ -68,13 +57,9 @@ function App() {
          clearInterval(fadeIntervalRef.current);
          return;
       }
-
       currentStep++;
       const newVol = startVol + (stepVol * currentStep);
-
-      if (newVol >= 0 && newVol <= 1) {
-        audio.volume = newVol;
-      }
+      if (newVol >= 0 && newVol <= 1) audio.volume = newVol;
 
       if (currentStep >= steps) {
         audio.volume = targetVol;
@@ -83,15 +68,12 @@ function App() {
     }, stepTime);
   };
 
-  // --- MUSIC HANDLER (GLOBAL CLICK) ---
   const handleGlobalClick = useCallback(() => {
     if (musicHasStartedRef.current) return;
-
     if (backgroundMusic) {
       const audio = backgroundMusic.getAudio();
       if (audio && audio.paused) {
         musicHasStartedRef.current = true;
-        console.log("Interaction detected. Fading in music...");
         audio.volume = 0; 
         fadeTo(backgroundMusic, NORMAL_VOLUME, 2000);
       }
@@ -101,7 +83,6 @@ function App() {
   useEffect(() => {
     window.addEventListener('click', handleGlobalClick);
     window.addEventListener('touchstart', handleGlobalClick);
-
     return () => {
       window.removeEventListener('click', handleGlobalClick);
       window.removeEventListener('touchstart', handleGlobalClick);
@@ -109,27 +90,20 @@ function App() {
     };
   }, [handleGlobalClick]);
 
-  // --- CONFIGURATION ---
+  // --- GAME LOGIC (Unchanged) ---
   const IDLE_SPEED = 3.0; 
   const STOP_DURATION = 3.5; 
   const STOP_SPINS = 3; 
 
   const handleStop = (e) => {
     if (e) e.stopPropagation(); 
-
     if (isStopping) return;
     setIsStopping(true);
     
-    // 1. FADE OUT background music
     fadeTo(backgroundMusic, 0, 800);
-    
-    // 2. Play stop sound
-    setTimeout(() => {
-      stopButtonSound.play();
-    }, 200);
+    setTimeout(() => stopButtonSound.play(), 200);
     
     const wheel = wheelRef.current;
-    
     if (wheel) {
         const style = window.getComputedStyle(wheel);
         const matrix = new DOMMatrixReadOnly(style.transform);
@@ -137,7 +111,6 @@ function App() {
         
         wheel.style.animation = 'none';
         wheel.style.transform = `translate(-50%, -50%) rotate(${currentAngle}deg)`;
-        
         void wheel.offsetHeight; 
   
         const extraDegrees = (STOP_SPINS * 360) + (Math.random() * 360);
@@ -147,33 +120,25 @@ function App() {
         wheel.style.transform = `translate(-50%, -50%) rotate(${finalAngle}deg)`;
     }
     
-    // 3. FADE IN background music
     setTimeout(() => {
       const audio = backgroundMusic?.getAudio();
-      if (backgroundMusic && audio) {
-        fadeTo(backgroundMusic, NORMAL_VOLUME, 1500);
-      }
+      if (backgroundMusic && audio) fadeTo(backgroundMusic, NORMAL_VOLUME, 1500);
     }, STOP_DURATION * 1000); 
     
     setTimeout(() => {
       setShowEndScreen(true);
       setShowText2(false);
-      setTimeout(() => {
-        setShowText2(true);
-      }, 2000);
+      setTimeout(() => setShowText2(true), 2000);
     }, (STOP_DURATION * 1000) + 1500);
   };
 
-  // IF END SCREEN IS SHOWN, RENDER ONLY END SCREEN
   if (showEndScreen) {
       return <EndScreen showEndScreen={showEndScreen} showText2={showText2} />;
   }
 
-  // OTHERWISE, RENDER THE GAME (With its own local background setup)
   return (
     <div
       ref={wrapperRef}
-      // Capture interactions for music
       onClickCapture={handleGlobalClick}
       onTouchStartCapture={handleGlobalClick}
       className="app-wrapper w-full h-screen relative flex items-center justify-center overflow-hidden p-8 box-border"
@@ -184,24 +149,31 @@ function App() {
         backgroundRepeat: "no-repeat",
       }}
     >
-      {/* --- MOLECULES (Only for Game Screen) --- */}
-      {/* FIX: Changed width to vmin for autoscaling and max-w for limits */}
+      {/* TOP IMAGE 
+          Using 'responsive-bg-img' to handle landscape scaling without cutting 
+      */}
       <img
-        src={molecule02}
-        alt=""
-        className="absolute top-0 right-[-2%] z-0 w-[25vmin] max-w-[250px] pointer-events-none select-none"
+        src={top1img}
+        alt="Top Design"
+        className="responsive-bg-img responsive-bg-img-top absolute top-0 z-0 pointer-events-none select-none"
       />
+      
+      {/* BOTTOM IMAGE
+          Using 'responsive-bg-img' to handle landscape scaling without cutting 
+      */}
       <img
-        src={molecule01}
-        alt=""
-        className="absolute bottom-0 left-0 z-1 w-[25vmin] max-w-[250px] pointer-events-none select-none"
+        src={bottom1Img}
+        alt="Bottom Design"
+        className="responsive-bg-img responsive-bg-img-bottom absolute bottom-0 z-1 pointer-events-none select-none"
       />
 
-      {/* --- GAME CONTENT --- */}
+      {/* GAME CONTENT
+          This is controlled by useScaleUI, so it handles its own sizing perfectly.
+      */}
       <div 
         ref={appRef} 
-        className="app relative flex flex-col items-center pt-12 pb-8"
-        style={{ width: '420px', height: '820px' }}
+        className="app relative flex flex-col items-center pt-12 pb-8 origin-center z-10"
+        style={{ width: '420px', height: '820px', position: 'absolute' }}
       >
         <header className="flex flex-col items-center select-none pointer-events-none relative z-50">
           <img src={logoImg} alt="Particle" className="w-[200px] mt-[4rem]" />
@@ -218,14 +190,14 @@ function App() {
               className="absolute z-10"
               style={{
                 width: "94%", 
-                top: "50%", left: "50%",
+                top: "53%", left: "50%",
                 transform: `translate(-50%, -50%)`, 
                 animation: `smooth-spin ${IDLE_SPEED}s linear infinite`, 
               }}
             />
           </div>
 
-          <p className="text-[#0038B1] font-bold text-center text-sm drop-shadow-md mt-6 px-4 animate-pulse select-none">
+          <p className="text-[#FFFFFF] font-bold text-center text-sm drop-shadow-md mt-6 px-4 animate-pulse select-none">
               Stop the wheel to reveal a mystery discount!
           </p>
 
@@ -240,6 +212,48 @@ function App() {
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
+        /* RESPONSIVE IMAGE LOGIC:
+           Full viewport width (100vw) in all orientations, fully scalable and responsive
+           - Images extend to both screen edges regardless of parent container constraints
+           - Portrait: Full viewport width, natural height scaling
+           - Landscape: Full viewport width, scales appropriately without cutting
+        */
+        .responsive-bg-img {
+            width: 100vw;
+            height: auto;
+            object-fit: contain;
+            object-position: center;
+        }
+
+        .responsive-bg-img-top {
+            left: 50%;
+            margin-left: -50vw;
+        }
+
+        .responsive-bg-img-bottom {
+            left: 50%;
+            margin-left: -50vw;
+        }
+
+        /* Landscape mode: Fully responsive, no cutting, scales naturally */
+        @media (orientation: landscape) {
+            .responsive-bg-img {
+                width: 100vw;
+                height: auto;
+                max-height: 35vh;
+                object-fit: contain;
+                object-position: center;
+            }
+        }
+
+        /* For very wide screens, allow more height for better coverage */
+        @media (orientation: landscape) and (min-aspect-ratio: 2/1) {
+            .responsive-bg-img {
+                max-height: 30vh;
+                object-fit: contain;
+            }
+        }
+
         @keyframes smooth-spin {
           from { transform: translate(-50%, -50%) rotate(0deg); }
           to { transform: translate(-50%, -50%) rotate(360deg); }

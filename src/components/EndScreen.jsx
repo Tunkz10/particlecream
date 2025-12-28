@@ -1,249 +1,272 @@
 import React, { useState, useEffect } from "react";
+import useScaleUI from "../hooks/useScaleUI";
 
-// Image Imports (Background Assets)
+// --- Assets ---
 import backgroundImg from "../assets/img/background.jpg";
-import molecule01 from "../assets/img/Molecule_01.png";
-import molecule02 from "../assets/img/Molecule_02.png";
-
-// Image Imports (End Screen Assets)
+import bottom1Img from "../assets/img/bottom_design.png";
+import top1img from "../assets/img/top_design.png";
 import logoImg from "../assets/img/Logo.png";
 import blastImg from "../assets/img/BLAST.png";
 import ctaButtonImg from "../assets/img/CTA.png";
-import podiumImg from "../assets/img/itempodium.png";
 import text1Img from "../assets/img/text_1.png";
 import text2Img from "../assets/img/text_2.png";
-import endItemImg from "../assets/img/enditem.png";
-import endPodiumImg from "../assets/img/endpodium.png";
+import podium from "../assets/img/Podium.png";
+
+// --- ORIGINAL ITEMS (Podium) ---
+import item1Original from "../assets/img/4.png"; 
+import item2Original from "../assets/img/2.png"; 
+import item3Original from "../assets/img/1.png"; 
+import item4Original from "../assets/img/3.png"; 
+
+// --- VARIANT ITEMS (Center Pop-up) ---
+import item1Variant from "../assets/img/4-1.png"; 
+import item2Variant from "../assets/img/2-1.png"; 
+import item4Variant from "../assets/img/3-1.png"; 
+import item3Variant from "../assets/img/1-1.png"; 
 
 const EndScreen = ({ showEndScreen }) => {
+  const { appRef, wrapperRef } = useScaleUI(420, 820);
+  
   const [isVisible, setIsVisible] = useState(false);
-  const [animationStep, setAnimationStep] = useState(0); 
-  const [isLandscape, setIsLandscape] = useState(false);
+  
+  // --- Animation State ---
+  const [sequenceStep, setSequenceStep] = useState(0);
+  const [textSubStep, setTextSubStep] = useState(0);
+  const [itemAnimPhase, setItemAnimPhase] = useState('hidden');
 
-  // 1. Handle Orientation & Visibility Entry
+  // Configuration
+  const ITEMS_CONFIG = [
+    null, 
+    { 
+      id: 1, 
+      original: item1Original, 
+      variant: item1Variant, 
+      podiumStyle: "w-[32%] -mr-[6%] mb-[2%] z-10"
+    },
+    { 
+      id: 2, 
+      original: item2Original, 
+      variant: item2Variant, 
+      podiumStyle: "w-[30%] z-30"
+    },
+    { 
+      id: 3, 
+      original: item3Original, 
+      variant: item3Variant, 
+      podiumStyle: "w-[23%] -ml-[3%] mb-[4%] z-10"
+    },
+    { 
+      id: 4, 
+      original: item4Original, 
+      variant: item4Variant, 
+      podiumStyle: "w-[33%] -ml-[15%] mb-[-4%] z-40"
+    },
+  ];
+
+  // --- Master Loop Logic ---
   useEffect(() => {
-    const checkOrientation = () => {
-      setIsLandscape(window.innerWidth > window.innerHeight);
-    };
-    
-    checkOrientation();
-    window.addEventListener('resize', checkOrientation);
-
     if (showEndScreen) {
-      const timer = setTimeout(() => setIsVisible(true), 100);
-      return () => clearTimeout(timer);
+      setIsVisible(true);
+      runSequence(0); 
     } else {
       setIsVisible(false);
-      setAnimationStep(0);
+      setSequenceStep(0);
     }
-
-    return () => window.removeEventListener('resize', checkOrientation);
   }, [showEndScreen]);
 
-  // 2. Handle Looping Animation Logic
-  useEffect(() => {
-    if (!isVisible) return;
+  const runSequence = (stepIndex) => {
+    setSequenceStep(stepIndex);
 
-    let timer;
+    if (stepIndex === 0) {
+      // === TEXT PHASE ===
+      setItemAnimPhase('hidden'); 
+      setTextSubStep(0); 
+      setTimeout(() => setTextSubStep(1), 1500); 
+      setTimeout(() => runSequence(1), 3500); 
 
-    if (isLandscape) {
-      timer = setTimeout(() => {
-        setAnimationStep((prev) => (prev === 0 ? 1 : 0));
-      }, 2500);
+    } else if (stepIndex >= 1 && stepIndex <= 4) {
+      // === ITEM PHASE ===
+      setItemAnimPhase('center-pop');
 
-    } else {
-      const stepDuration = animationStep === 2 ? 3000 : 2500; 
-      timer = setTimeout(() => {
-        setAnimationStep((prev) => {
-          if (prev === 2) return 0; 
-          return prev + 1;         
-        });
-      }, stepDuration);
+      setTimeout(() => {
+        setItemAnimPhase('restored');
+        setTimeout(() => {
+          const nextStep = stepIndex === 4 ? 0 : stepIndex + 1; 
+          runSequence(nextStep);
+        }, 800); 
+      }, 1500); 
     }
-
-    return () => clearTimeout(timer);
-  }, [isVisible, isLandscape, animationStep]);
+  };
 
   const handleClickAction = () => {
-    if (window.mraid && window.mraid.open && typeof window.mraid.open === "function") {
-      window.mraid.open();
-    } else {
-      window.open();
-    }
+    if (window.mraid?.open) window.mraid.open();
+    else window.open();
   };
 
   if (!showEndScreen) return null;
 
-  const currentPodium = (animationStep === 2 && !isLandscape) ? endPodiumImg : podiumImg;
-  
-  // SHARED ANIMATION CLASS
   const entranceAnim = isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8";
 
   return (
-    // ROOT WRAPPER
     <div
+      ref={wrapperRef}
       onClickCapture={handleClickAction}
-      className="app-wrapper w-full h-screen relative flex items-center justify-center overflow-hidden p-8 box-border"
-      style={{
-        backgroundImage: `url(${backgroundImg})`,
-        backgroundSize: "100% 100%",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      }}
+      className="w-full h-screen relative flex items-center justify-center overflow-hidden p-8 box-border bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: `url(${backgroundImg})` }}
     >
-        {/* ------------------------------------------------------
-            LAYER 1: TOP RIGHT MOLECULE (Background)
-            ------------------------------------------------------ */}
-        <img
-          src={molecule02}
-          alt=""
-          // Already working: vmin with max-w constraint
-          className="absolute top-0 right-[-2%] z-[0] w-[25vmin] max-w-[250px] pointer-events-none select-none"
-        />
+      
+      {/* ================= LAYER 1: DECORATIONS ================= */}
+      <img
+        src={top1img}
+        alt="Top Design"
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-screen h-auto object-contain z-0 pointer-events-none select-none landscape:max-h-[25vh] landscape:w-auto landscape:max-w-screen"
+      />
 
-        {/* ------------------------------------------------------
-            LAYER 2: THE PODIUM
-            ------------------------------------------------------ */}
-        <div 
-            className={`absolute bottom-0 flex flex-col items-center justify-end transition-all duration-700 ease-out z-[10] ${entranceAnim}`}
-            style={{ 
-                // Autoscales with vmin, but stops growing at 500px
-                width: isLandscape ? '50vmin' : '80vmin',
-                maxWidth: '500px',
-                marginBottom: '-1vmin'
-            }}
-        >
-            <div className="relative w-full">
-                <img
-                    src={blastImg}
-                    alt="Blast Effect"
-                    className="absolute z-0 opacity-90 pointer-events-none select-none"
-                    style={{ 
-                        left: '50%', top: '50%', width: '120%', maxWidth: 'none', transform: 'translate(-50%, -80%)' 
-                    }}
-                />
-                <img
-                    src={currentPodium}
-                    alt="Podium"
-                    className="relative z-[10] w-full"
-                />
-            </div>
-        </div>
-
-        {/* ------------------------------------------------------
-            LAYER 3: THE SANDWICH MOLECULE (Molecule 01)
-            ------------------------------------------------------ */}
-        <img
-          src={molecule01}
-          alt=""
-           // Already working: vmin with max-w constraint
-          className="absolute bottom-0 left-0 z-[20] w-[25vmin] max-w-[250px] pointer-events-none select-none"
-        />
-
-        {/* ------------------------------------------------------
-            LAYER 4: LOGO & TEXT GROUP
-            ------------------------------------------------------ */}
-        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-between pointer-events-none z-[30]">
-            <div
-                className={`flex flex-col items-center justify-start transition-all duration-700 ease-out w-full relative ${entranceAnim}`}
-                style={{ 
-                    // Changed vh to vmin for consistent vertical scaling
-                    paddingTop: isLandscape ? '5vmin' : '12vmin' 
-                }}
-            >
-                {/* LOGO AUTOSCALING */}
-                <img
-                    src={logoImg}
-                    alt="Particle Logo"
-                    style={{ 
-                        width: isLandscape ? '40vmin' : '65vmin',
-                        maxWidth: '380px' // Added max constraint
-                    }}
-                />
-               {/* TEXT AREA AUTOSCALING */}
-<div 
-    className={`relative flex items-center justify-center transition-opacity duration-500 ${animationStep === 2 && !isLandscape ? 'opacity-0' : 'opacity-100'}`}
-    style={{ 
-        // INCREASED WIDTH: Takes up 90% of screen width in portrait, 60% in landscape
-        width: isLandscape ? '60vmin' : '90vmin', 
+      {/* ================= LAYER 2: HEADER (Logo + Text) ================= */}
+      <header className={`fixed left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-[50] transition-all duration-700 ease-out ${entranceAnim}
         
-        // RELAXED LIMIT: Increased from 420px to 800px so it can actually get big
-        maxWidth: '560px', 
-        
-        // INCREASED HEIGHT: Taller container to match the wider width
-        height: isLandscape ? '18vmin' : '24vmin', 
-        
-        // RELAXED LIMIT: Increased from 90px to 200px
-        maxHeight: '200px', 
-        
-        marginTop: '10vmin'
-    }}
->
-    <img
-        src={text1Img}
-        className={`absolute inset-0 w-full h-full object-contain transition-all duration-1000 ease-in-out ${
-        animationStep === 0 ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-2"
-        }`}
-    />
-    <img
-        src={text2Img}
-        className={`absolute inset-0 w-full h-full object-contain transition-all duration-1000 ease-in-out ${
-        animationStep === 1 ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-2"
-        }`}
-    />
+        /* --- 1. PORTRAIT (Default) --- */
+        top-[15vh] 
+        w-[80vw] 
+        max-w-[420px]
 
-                </div>
-            </div>
-        </div>
-
-        {/* ------------------------------------------------------
-            LAYER 5: END ITEM (Floating Middle)
-            ------------------------------------------------------ */}
-        <div 
-            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] transition-all duration-1000 ease-out z-[40] ${
-                (animationStep === 2 && !isLandscape) ? "opacity-100 scale-100" : "opacity-0 scale-50"
+        /* --- 2. LANDSCAPE FIXES --- */
+        /* Move it higher up so it doesn't overlap the center */
+        landscape:top-[13vh] 
+        /* Make it smaller (based on height) */
+        landscape:w-[40vh] 
+        landscape:max-w-[none]
+      `}>
+        <img src={logoImg} alt="Logo" className="w-[50vw] max-w-[400px] landscape:w-full" />
+        
+        <div className="relative w-[75vw] max-w-[610px] aspect-[310/80] mt-[5vh] flex items-center justify-center landscape:w-full landscape:mt-[2vh]">
+          <img
+            src={text1Img}
+            alt="Text 1"
+            className={`absolute inset-0 w-full h-full object-contain transition-all duration-500 ease-in-out ${
+              sequenceStep === 0 && textSubStep === 0 ? "opacity-100 scale-100" : "opacity-0 scale-95"
             }`}
-            style={{ 
-                width: '90vmin',
-                maxWidth: '650px' // Added max constraint so it doesn't get huge on desktop
-            }} 
-        >
-            <img src={endItemImg} alt="End Item" className="w-full drop-shadow-2xl" />
+          />
+          <img
+            src={text2Img}
+            alt="Text 2"
+            className={`absolute inset-0 w-full h-full object-contain transition-all duration-500 ease-in-out ${
+              sequenceStep === 0 && textSubStep === 1 ? "opacity-100 scale-100" : "opacity-0 scale-95"
+            }`}
+          />
+        </div>
+      </header>
+
+      {/* Hidden Hook Ref */}
+      <div ref={appRef} className="hidden w-[420px] h-[820px]" />
+
+      {/* ================= LAYER 3: CENTER POP-UP OVERLAY ================= */}
+      <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center">
+        {ITEMS_CONFIG.map((item, idx) => {
+          if (!item) return null;
+          
+          const isActive = sequenceStep === idx;
+          const showCenter = isActive && itemAnimPhase === 'center-pop';
+
+          return (
+            <img 
+              key={`center-${idx}`} 
+              src={item.variant} 
+              alt="Center Product" 
+              className={`absolute object-contain drop-shadow-2xl transition-all duration-500 ease-out
+                w-[80vw] md:w-[50vw]
+                landscape:w-auto 
+                landscape:h-[35vh]
+                top-[43vh] left-1/2 -translate-x-1/2
+                ${
+                showCenter 
+                  ? "opacity-100 scale-100 -translate-y-[60%]" 
+                  : "opacity-0 scale-50 -translate-y-[40%]"    
+              }`}
+            />
+          );
+        })}
+      </div>
+
+      {/* ================= LAYER 4: PODIUM ================= */}
+      <div className={`fixed bottom-0 left-1/2 -translate-x-1/2 z-[5] ${entranceAnim}
+           /* --- 3. PODIUM SIZE LOGIC --- */
+           
+           /* MOBILE PORTRAIT: 80% width, capped at 550px */
+           w-[80vw] 
+           max-w-[550px]
+
+           /* IPAD / TABLET PORTRAIT: */
+           /* Allow it to be wider (increase the cap to 800px) */
+           md:max-w-[800px] 
+           /* Set the specific width percentage you want for iPad */
+           md:w-[66vw] 
+           lg:w-[68vw]
+
+           /* LANDSCAPE MODE (Overrules everything above when rotated) */
+           landscape:w-[45vh]
+           landscape:max-w-none /* Remove pixel limits in landscape so height dictates size */
+      `}>
+        <img src={blastImg} className="absolute bottom-[50%] left-1/2 -translate-x-1/2 w-[90%] opacity-90 z-0" />
+
+        <div className="relative z-10 w-full">
+          <img src={podium} className="w-full object-contain drop-shadow-xl"/>
         </div>
 
-        {/* ------------------------------------------------------
-            LAYER 6: CTA BUTTON (Top Layer)
-            ------------------------------------------------------ */}
-        <div className={`absolute bottom-[-1rem] w-full flex justify-center pointer-events-none z-[50] ${entranceAnim}`}>
-            <button
-                className="pointer-events-auto transition-all duration-700 ease-out delay-500 hover:scale-105 active:scale-95"
-                style={{ 
-                    // Changed vh to vmin for consistent vertical spacing
-                    marginBottom: isLandscape ? '4vmin' : '15vmin', 
-                    width: isLandscape ? '35vmin' : '55vmin',
-                    maxWidth: '320px' // Added max constraint for desktop
-                }}
-            >
-                <img
-                    src={ctaButtonImg}
-                    alt="Shop Now"
-                    className="w-full drop-shadow-lg"
-                />
-            </button>
+        <div className="absolute bottom-[66%] left-0 right-0 z-20 flex items-end justify-center w-full">
+          {ITEMS_CONFIG.map((item, idx) => {
+             if (!item) return null;
+             const isHidden = sequenceStep === idx && itemAnimPhase === 'center-pop';
+             
+             return (
+               <div key={`podium-${idx}`} className={`relative origin-bottom transition-all duration-300 ${item.podiumStyle}`}>
+                 <img 
+                   src={item.original} 
+                   className={`w-full object-contain drop-shadow-lg transition-opacity duration-300 ${
+                     isHidden ? 'opacity-0' : 'opacity-100'
+                   }`}
+                 />
+               </div>
+             )
+          })}
         </div>
+      </div>
 
-        <style>{`
-          @keyframes heartbeat {
-            0%, 100% { transform: scale(1); }
-            14% { transform: scale(1.08); }
-            28% { transform: scale(1); }
-            42% { transform: scale(1.08); }
-            70% { transform: scale(1); }
-          }
-          button {
-            animation: heartbeat 1.5s ease-in-out infinite;
-          }
-        `}</style>
+      <img 
+        src={bottom1Img} 
+        alt="Bottom Design"
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-screen h-auto object-contain z-20 pointer-events-none select-none landscape:max-h-[25vh] landscape:w-auto landscape:max-w-screen" 
+      />
+      
+      {/* ================= LAYER 5: BUTTON ================= */}
+      <div className={`fixed left-1/2 -translate-x-1/2 z-[60] ${entranceAnim}
+          /* --- 4. BUTTON LANDSCAPE FIXES --- */
+          /* Portrait */
+          bottom-[10vh] 
+          w-[60vw] 
+          max-w-[380px]
+
+          /* Landscape: Smaller bottom margin & smaller size (based on height) */
+          landscape:bottom-[5vh]
+          landscape:w-[25vh]
+      `}>
+        <button className="animate-heartbeat w-full hover:scale-105 active:scale-95 transition-transform">
+          <img src={ctaButtonImg} alt="Shop Now" className="w-full drop-shadow-lg" />
+        </button>
+      </div>
+
+      <style>{`
+        @keyframes heartbeat {
+          0%, 100% { transform: scale(1); }
+          14% { transform: scale(1.08); }
+          28% { transform: scale(1); }
+          42% { transform: scale(1.08); }
+          70% { transform: scale(1); }
+        }
+        .animate-heartbeat {
+          animation: heartbeat 1.5s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 };
